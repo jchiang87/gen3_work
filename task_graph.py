@@ -178,7 +178,7 @@ class TaskGraph(dict):
         super(TaskGraph, self).__init__()
         self.config = config
         self._tasks = None
-        self.pipeline = None
+        self.ingest_pipeline()
 
     def __getitem__(self, key):
         if not key in self:
@@ -209,7 +209,12 @@ class TaskGraph(dict):
             --no-versions''' % self.config
         print(command)
         sys.stdout.flush()
-        subprocess.check_call(command, shell=True)
+        try:
+            subprocess.check_call(command, shell=True)
+        except subprocess.CalledProcessError as eobj:
+            print("Error encountered initializing the pipeline:")
+            print(eobj)
+
         print('\n')
         while not self.done():
             for task in self.tasks():
@@ -219,14 +224,14 @@ class TaskGraph(dict):
         items = []
         for task_name, task in self.items():
             items.append(task_name)
-            items.append('   ' + str(task.dependencies))
-            items.append('   ' + str(task.prereqs))
+            items.append('   prereqs: ' + str(task.prereqs))
+            items.append('   dependencies: ' + str(task.dependencies))
             items.append('')
         return '\n'.join(items)
 
-    def ingest_pipeline(self, pipeline):
-        self.pipeline = pipeline
-        graph = pipeline.sci_graph
+    def ingest_pipeline(self):
+        self.pipeline = PipelineGraph(self.config['qgraph_file'])
+        graph = self.pipeline.sci_graph
         for task_name in graph:
             if not task_name.startswith('task'):
                 continue
@@ -247,7 +252,6 @@ if __name__ == '__main__':
     config = dict(cp.items('DEFAULT'))
 
     my_tasks = TaskGraph(config)
-    my_tasks.ingest_pipeline(PipelineGraph(config['qgraph_file']))
 
     print(my_tasks.state())
     print()
