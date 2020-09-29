@@ -1,0 +1,35 @@
+1. create a gen2 repo and ingest raw data
+
+2. symlink CALIB, calibrations, ref_cats
+
+3. replace symlinked flat dir with physical flat dir
+$ cd gen2-repo/CALIB
+$ del flat
+$ mkdir flat
+
+4. copy master flats to have physical_filter names
+$ python copy_flats.py
+
+5. create symlinks for flats in other bands
+$ python symlink_flats.py
+
+6. create a gen3 repo from a seed butler.yaml file
+$ butler create --seed-config butler.yaml gen3-repo
+
+7. convert gen2-repo to gen3-repo
+$ python scripts/convert_gen2-repo.py
+
+8. make skymap
+$ makeGen3Skymap.py gen3-repo skymaps/imsim -C config/makeSkyMap.py
+
+9. ingest reference catalogs from gen2-repo
+$ python scripts/ingestRef.py
+
+10. Set up filterMap.py:
+$ cat config/filterMap.py
+
+11. Generate the quantum graph
+$ bash scripts/make_qgraph.sh
+
+12. Run the pipeline
+$ python task_graph.py pipeline.cfg
